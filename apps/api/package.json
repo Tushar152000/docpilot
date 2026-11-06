@@ -7,7 +7,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
     "dev": "tsc -p tsconfig.json --watch & node --watch dist/main.js",
-    "test": "npm run build && node --test \"dist/**/*.spec.js\""
+    "test": "npm run build && find dist -name '*.spec.js' -exec node --test {} +"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
