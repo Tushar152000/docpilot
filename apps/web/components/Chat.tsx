@@ -1,6 +1,8 @@
 'use client';
 
-import { Fragment, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { AgentEvent, api, Citation, streamChat } from '@/lib/api';
 
 interface ToolStep {
@@ -27,23 +29,43 @@ const SUGGESTIONS = [
   'How should I report a security incident?',
 ];
 
-/** Renders answer text, turning [n] markers into clickable citation buttons. */
-function AnswerText({ text, onCite }: { text: string; onCite: (n: number) => void }) {
-  const parts = text.split(/(\[\d+\])/g);
+/**
+ * Renders untrusted Markdown from the model or a document. Raw HTML is off by default, and
+ * images are dropped so injected text can't make the browser call an outside URL by itself.
+ */
+function Markdown({ text, onCite }: { text: string; onCite?: (n: number) => void }) {
   return (
-    <div className="answer">
-      {parts.map((part, i) => {
-        const m = part.match(/^\[(\d+)\]$/);
-        return m ? (
-          <button key={i} className="cite" onClick={() => onCite(Number(m[1]))}>
-            {m[1]}
-          </button>
-        ) : (
-          <Fragment key={i}>{part}</Fragment>
-        );
-      })}
+    <div className="markdown">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        disallowedElements={['img']}
+        components={{
+          a({ href, children }) {
+            const cite = href?.match(/^#cite-(\d+)$/);
+            if (cite && onCite) {
+              return (
+                <button type="button" className="cite" onClick={() => onCite(Number(cite[1]))}>
+                  {cite[1]}
+                </button>
+              );
+            }
+            return (
+              <a href={href} target="_blank" rel="noopener noreferrer">
+                {children}
+              </a>
+            );
+          },
+        }}
+      >
+        {text}
+      </ReactMarkdown>
     </div>
   );
+}
+
+/** Renders an answer, turning [n] markers into clickable citation buttons. */
+function AnswerText({ text, onCite }: { text: string; onCite: (n: number) => void }) {
+  return <Markdown text={text.replace(/\[(\d+)\](?!\()/g, '[$1](#cite-$1)')} onCite={onCite} />;
 }
 
 export default function Chat({ workspaceId }: { workspaceId: string }) {
@@ -199,7 +221,9 @@ export default function Chat({ workspaceId }: { workspaceId: string }) {
               Close
             </button>
           </div>
-          <pre>{source.content}</pre>
+          <div className="source-text">
+            <Markdown text={source.content} />
+          </div>
         </aside>
       )}
     </div>
