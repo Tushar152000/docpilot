@@ -43,7 +43,7 @@ const SYSTEM_PROMPT = `You are DocPilot, an assistant that answers questions usi
 
 Rules:
 - Use the search_docs tool before answering any factual question. Search again with different wording if results look weak.
-- Every factual sentence must cite its source with the bracketed number from the tool output, e.g. "Refunds take 7 days [2]."
+- Every factual sentence must cite its source with the bracketed number from the tool output, e.g. "Refunds take 7 days [2]." This includes summaries and bullet points.
 - If the documents do not contain the answer, say so plainly. Never invent facts, numbers or policies.
 - Use summarize_doc when the user asks for an overview of a specific document.
 - Use create_ticket only when the user explicitly asks to create a ticket, task or follow-up.
@@ -340,7 +340,9 @@ export class AgentService {
     ctx: RunContext,
   ): AsyncGenerator<AgentEvent, { model: string; promptTokens: number; completionTokens: number }> {
     yield { type: 'meta', mode: 'offline', model: 'extractive' };
-    const { chunks } = yield* this.searchWithEvents(workspaceId, question, ctx);
+    const { chunks, failed } = yield* this.searchWithEvents(workspaceId, question, ctx);
+    // A broken search is not the same as "nothing found": let run() report the failure.
+    if (failed) throw new Error('Search is unavailable');
     const notFound = "I couldn't find anything about that in this workspace's documents.";
     const qTokens = new Set(tokenize(question));
     const lines: string[] = [];
@@ -373,7 +375,7 @@ export class AgentService {
     yield { type: 'tool_call', id, name: 'search_docs', args: { query } } as AgentEvent;
     const result = await this.executeTool(workspaceId, 'search_docs', { query }, ctx);
     yield { type: 'tool_result', id, name: 'search_docs', summary: result.summary } as AgentEvent;
-    return { forModel: result.forModel, chunks: result.chunks ?? [] };
+    return { forModel: result.forModel, chunks: result.chunks ?? [], failed: result.failed ?? false };
   }
 
   private async executeTool(
@@ -381,7 +383,7 @@ export class AgentService {
     name: string,
     args: Record<string, any>,
     ctx: RunContext,
-  ): Promise<{ forModel: string; summary: string; chunks?: RetrievedChunk[] }> {
+  ): Promise<{ forModel: string; summary: string; chunks?: RetrievedChunk[]; failed?: boolean }> {
     try {
       switch (name) {
         case 'search_docs': {
@@ -405,7 +407,10 @@ export class AgentService {
             )
             .join('\n\n')
             .slice(0, 9000);
-          return { forModel: `Document: ${doc.title}\n\n${body}`, summary: `Loaded "${doc.title}"` };
+          return {
+            forModel: `Document: ${doc.title}\n\n${body}\n\nEnd every point of your summary with the [n] of the passage it came from.`,
+            summary: `Loaded "${doc.title}"`,
+          };
         }
         case 'list_documents': {
           const docs = await this.retrieval.listDocuments(workspaceId);
@@ -426,7 +431,7 @@ export class AgentService {
       }
     } catch (err: any) {
       this.logger.error(`Tool ${name} failed: ${err.message}`);
-      return { forModel: `Tool ${name} failed: ${err.message}`, summary: 'Tool error' };
+      return { forModel: `Tool ${name} failed: ${err.message}`, summary: 'Tool error', failed: true };
     }
   }
 }
