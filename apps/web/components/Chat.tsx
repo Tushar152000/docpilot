@@ -45,7 +45,7 @@ function Markdown({ text, onCite }: { text: string; onCite?: (n: number) => void
             if (cite && onCite) {
               return (
                 <button type="button" className="cite" onClick={() => onCite(Number(cite[1]))}>
-                  {cite[1]}
+                  [{cite[1]}]
                 </button>
               );
             }
@@ -61,6 +61,17 @@ function Markdown({ text, onCite }: { text: string; onCite?: (n: number) => void
       </ReactMarkdown>
     </div>
   );
+}
+
+/** One entry per document, so several passages from a document don't repeat its title. */
+function byDocument(citations: Citation[]) {
+  const groups = new Map<string, { documentId: string; title: string; items: Citation[] }>();
+  for (const c of citations) {
+    const group = groups.get(c.documentId) ?? { documentId: c.documentId, title: c.title, items: [] };
+    group.items.push(c);
+    groups.set(c.documentId, group);
+  }
+  return [...groups.values()];
 }
 
 /** Renders an answer, turning [n] markers into clickable citation buttons. */
@@ -166,10 +177,15 @@ export default function Chat({ workspaceId }: { workspaceId: string }) {
                 {m.error && <p className="error">{m.error}</p>}
                 {m.citations && m.citations.length > 0 && (
                   <div className="sources">
-                    {m.citations.map((c) => (
-                      <button key={c.n} className="source-chip" onClick={() => openSource(m.citations, c.n)}>
-                        [{c.n}] {c.title}
-                      </button>
+                    {byDocument(m.citations).map((group) => (
+                      <div key={group.documentId} className="source-group">
+                        <span>{group.title}</span>
+                        {group.items.map((c) => (
+                          <button key={c.n} type="button" className="cite" onClick={() => openSource(m.citations, c.n)}>
+                            [{c.n}]
+                          </button>
+                        ))}
+                      </div>
                     ))}
                   </div>
                 )}
