@@ -1,0 +1,17 @@
+{
+  "name": "docpilot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open-source agentic RAG platform: hybrid retrieval, cited answers, evals and an MCP server",
+  "scripts": {
+    "up": "docker compose up --build",
+    "infra": "docker compose up -d db redis",
+    "install:all": "npm --prefix apps/api install && npm --prefix apps/web install && npm --prefix apps/mcp install",
+    "dev:api": "npm --prefix apps/api run build && npm --prefix apps/api start",
+    "dev:web": "npm --prefix apps/web run dev",
+    "build:mcp": "npm --prefix apps/mcp run build",
+    "seed": "node scripts/seed.mjs",
+    "test": "npm --prefix apps/api test"
+  },
+  "license": "MIT"
+}
