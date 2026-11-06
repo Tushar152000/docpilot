@@ -125,12 +125,10 @@ class RunContext {
     return n;
   }
 
-  /** Citations actually referenced in the answer; falls back to the top sources. */
+  /** Citations actually referenced in the answer. An answer that cites nothing lists no sources. */
   citationsFor(answer: string): Citation[] {
-    const all = [...this.byChunk.values()];
     const used = new Set([...answer.matchAll(/\[(\d+)\]/g)].map((m) => Number(m[1])));
-    const cited = all.filter((c) => used.has(c.n));
-    return cited.length ? cited : all.slice(0, 3);
+    return [...this.byChunk.values()].filter((c) => used.has(c.n));
   }
 }
 
@@ -343,10 +341,7 @@ export class AgentService {
   ): AsyncGenerator<AgentEvent, { model: string; promptTokens: number; completionTokens: number }> {
     yield { type: 'meta', mode: 'offline', model: 'extractive' };
     const { chunks } = yield* this.searchWithEvents(workspaceId, question, ctx);
-    if (chunks.length === 0) {
-      yield { type: 'token', text: "I couldn't find anything about that in this workspace's documents." };
-      return { model: 'offline', promptTokens: 0, completionTokens: 0 };
-    }
+    const notFound = "I couldn't find anything about that in this workspace's documents.";
     const qTokens = new Set(tokenize(question));
     const lines: string[] = [];
     for (const chunk of chunks.slice(0, 3)) {
@@ -356,14 +351,16 @@ export class AgentService {
         .map((s) => s.trim())
         .filter((s) => s.length > 20)
         .map((s) => ({ s, score: tokenize(s).filter((t) => qTokens.has(t)).length }))
+        .filter((x) => x.score > 0) // never cite a sentence that shares no words with the question
         .sort((a, b) => b.score - a.score)
         .slice(0, 2)
         .map((x) => x.s.replace(/^[#>*\-\s]+/, ''));
       if (best.length) lines.push(`- ${best.join(' ')} [${n}]`);
     }
-    const text =
-      `Here is what your documents say (offline mode: add an OPENAI_API_KEY for AI-written answers):\n\n` +
-      lines.join('\n');
+    const text = lines.length
+      ? `Here is what your documents say (offline mode: add an OPENAI_API_KEY for AI-written answers):\n\n` +
+        lines.join('\n')
+      : notFound;
     for (const word of text.split(/(?<= )/)) yield { type: 'token', text: word };
     return { model: 'offline', promptTokens: 0, completionTokens: 0 };
   }
