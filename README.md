@@ -64,6 +64,7 @@ Open **http://localhost:3000**.
 ### Local development (without Docker for the apps)
 
 ```bash
+cp .env.example .env          # add OPENAI_API_KEY (optional: runs offline without it)
 npm run infra                 # just Postgres + Redis in Docker
 npm run install:all
 npm run dev:api               # http://localhost:4000

@@ -1,4 +1,9 @@
+import * as dotenv from 'dotenv';
 import * as path from 'path';
+
+// Local runs read the repo-root .env. Real env vars win, and in Docker (where
+// Compose injects the values) the file simply isn't there.
+dotenv.config({ path: path.resolve(__dirname, '../../../.env'), quiet: true });
 
 /** Central, typed access to environment configuration. */
 export const config = {
