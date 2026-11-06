@@ -136,7 +136,9 @@ export class DocumentsController {
     @UploadedFile() file?: Express.Multer.File,
   ) {
     if (!file) throw new BadRequestException('Attach a file in the "file" field');
-    const text = await extractFromFile(file.buffer, file.originalname, file.mimetype);
+    const text = await extractFromFile(file.buffer, file.originalname, file.mimetype).catch(() => {
+      throw new BadRequestException('Could not read this file. It may be corrupt or password-protected.');
+    });
     if (!text.trim()) throw new BadRequestException('Could not extract any text from this file');
     return this.docs.create(workspaceId, {
       title: file.originalname,
