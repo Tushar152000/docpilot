@@ -56,6 +56,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 }
 .grid { display: grid; gap: 12px; }
 .grid-3 { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.workspace-card { display: flex; flex-direction: column; gap: 12px; overflow-wrap: anywhere; }
 .grid-4 { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
 .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .spacer { flex: 1; }

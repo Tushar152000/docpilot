@@ -87,7 +87,10 @@ export default function Knowledge({ workspaceId }: { workspaceId: string }) {
         </label>
         <form className="card" onSubmit={addUrl}>
           <strong>Add a web page</strong>
-          <p className="muted small">We fetch the page, strip navigation, and index the text.</p>
+          <p className="muted small">
+            Imports only this exact page, not the whole website. To ask about refunds, add the refund policy page
+            rather than the homepage.
+          </p>
           <div className="row">
             <input
               placeholder="https://docs.example.com/refund-policy"
