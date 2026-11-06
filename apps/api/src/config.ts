@@ -15,7 +15,7 @@ export const config = {
     process.env.MIGRATIONS_DIR ?? path.resolve(__dirname, '../../../db/migrations'),
 
   openaiKey: process.env.OPENAI_API_KEY || '',
-  openaiChatModel: process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini',
+  openaiChatModel: process.env.OPENAI_CHAT_MODEL || 'gpt-6-luna',
   openaiEmbedModel: process.env.OPENAI_EMBED_MODEL || 'text-embedding-3-small',
   anthropicKey: process.env.ANTHROPIC_API_KEY || '',
   anthropicModel: process.env.ANTHROPIC_MODEL || 'claude-3-5-haiku-latest',
@@ -29,6 +29,8 @@ export const config = {
 
 /** USD per 1M tokens: [input, output]. Unknown models fall back to 0. */
 export const PRICING: Record<string, [number, number]> = {
+  'gpt-6-luna': [0.1, 0.5],
+  'gpt-5.6-luna': [0.2, 1.2],
   'gpt-4o-mini': [0.15, 0.6],
   'gpt-4o': [2.5, 10],
   'gpt-4.1-mini': [0.4, 1.6],

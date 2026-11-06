@@ -243,6 +243,8 @@ export class AgentService {
           tools: TOOLS,
           tool_choice: lastStep ? 'none' : 'auto',
           temperature: 0.2,
+          // Luna models only allow function tools on Chat Completions with reasoning off.
+          ...(/-luna\b/.test(model) ? { reasoning_effort: 'none' as unknown as OpenAI.ReasoningEffort } : {}),
           stream: true,
           stream_options: { include_usage: true },
         }),
